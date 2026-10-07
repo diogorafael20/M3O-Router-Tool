@@ -154,9 +154,9 @@ class MeoRouter:
             raise RouterError("O router aceitou o pedido de Wi-Fi, mas a validação falhou.")
 
     def get_bridge_status(self) -> bool:
-        return not self.get_router_mode()
+        return self.get_router_mode_flag() == "1"
 
-    def get_router_mode(self) -> bool:
+    def get_router_mode_flag(self) -> str:
         response = self.session.get(
             f"{self.base_url}/ss-json/fgw.lan/fgw.lan.routerMode.json",
             timeout=REQUEST_TIMEOUT,
@@ -169,16 +169,14 @@ class MeoRouter:
         if router_mode not in {"0", "1"}:
             raise RouterError(f"Não foi possível determinar o modo router/bridge: {data}")
 
-        return router_mode == "1"
+        return router_mode
 
     def set_bridge_status(self, bridge_enabled: bool) -> None:
         current_bridge = self.get_bridge_status()
         if current_bridge == bridge_enabled:
             return
 
-        # O endpoint chama-se bridgeMode, mas enable=1 liga o modo router
-        # e enable=0 liga o modo bridge.
-        enable_value = "0" if bridge_enabled else "1"
+        enable_value = "1" if bridge_enabled else "0"
 
         response = self.session.get(
             f"{self.base_url}/bridgeMode.cmd",
@@ -830,6 +828,7 @@ def change_dns(router: MeoRouter, primary: str | None = None, secondary: str | N
 def show_bridge_status(router: MeoRouter) -> None:
     bridge = router.get_bridge_status()
     print(f"\nModo: {'BRIDGE' if bridge else 'ROUTER'}")
+    print(f"Valor routerMode do router: {router.get_router_mode_flag()}")
 
 
 def change_bridge(router: MeoRouter, bridge_enabled: bool) -> None:

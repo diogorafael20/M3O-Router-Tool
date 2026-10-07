@@ -22,6 +22,13 @@ administrador do router.
 - Armazenamento opcional de credenciais encriptadas em Windows
 - Execução através de `.exe` em Windows ou diretamente por Python
 
+## Compatibilidade com modo bridge
+
+Nos routers testados, o estado local `routerMode=1` corresponde a modo bridge
+ativo e `routerMode=0` corresponde a modo router. A ferramenta apresenta também
+o valor bruto `routerMode` no menu de bridge para facilitar validação em
+firmwares diferentes.
+
 ## Predefinições
 
 IP predefinido do router:
