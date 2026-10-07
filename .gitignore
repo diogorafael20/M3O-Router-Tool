@@ -7,3 +7,5 @@ dist/
 *.spec
 meo-router-credentials.encrypted.txt
 *.har
+MEO-Router-Tool.exe
+MEO-Router-Tool-Windows.zip
