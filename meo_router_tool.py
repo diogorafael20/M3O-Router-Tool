@@ -589,6 +589,9 @@ def parse_port_forward_entries(value: str) -> list[PortForwardEntry]:
     for cells, remove_token in html_table_rows(value):
         if len(cells) < 8:
             continue
+        remove_token = (
+            f"{cells[6]}|{cells[1]}|{cells[2]}|{cells[3]}|{cells[4]}|{cells[5]}|---,"
+        )
         entries.append(
             PortForwardEntry(
                 name=cells[0],
