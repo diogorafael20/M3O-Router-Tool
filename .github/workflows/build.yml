@@ -1,0 +1,64 @@
+name: Validar e gerar executável
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  validar-python:
+    name: Validar código Python
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Obter código
+        uses: actions/checkout@v4
+
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependências
+        run: python -m pip install -r requirements.txt
+
+      - name: Validar sintaxe
+        run: python -m py_compile meo_router_tool.py
+
+  gerar-exe-windows:
+    name: Gerar EXE Windows com PyInstaller
+    runs-on: windows-latest
+    needs: validar-python
+
+    steps:
+      - name: Obter código
+        uses: actions/checkout@v4
+
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pyinstaller
+
+      - name: Gerar EXE standalone
+        run: >
+          pyinstaller
+          --clean
+          --onefile
+          --console
+          --name MEO-Router-Tool
+          meo_router_tool.py
+
+      - name: Publicar artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: MEO-Router-Tool-Windows
+          path: dist/MEO-Router-Tool.exe

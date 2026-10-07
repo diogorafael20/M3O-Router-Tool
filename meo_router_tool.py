@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Ferramenta interativa para Windows para routers MEO Fiber Gateway.
+Ferramenta interativa para routers MEO Fiber Gateway.
 
 A ferramenta faz login usando o fluxo da interface web do router e mostra um
 menu simples para estado, Wi-Fi, DNS e modo bridge.
@@ -39,7 +39,7 @@ CREDENTIALS_FILENAME = "meo-router-credentials.encrypted.txt"
 
 
 class RouterError(Exception):
-    """Erro lancado quando o router rejeita ou nao conclui uma operacao."""
+    """Erro lançado quando o router rejeita ou não conclui uma operação."""
 
 
 @dataclass
@@ -97,7 +97,7 @@ class MeoRouter:
 
         xsrf_token = response.headers.get("X-XSRF-TOKEN")
         if not xsrf_token:
-            raise RouterError("O login resultou, mas o router nao devolveu X-XSRF-TOKEN.")
+            raise RouterError("O login resultou, mas o router não devolveu X-XSRF-TOKEN.")
 
         self.xsrf_token = xsrf_token
         self.session.headers.update(
@@ -143,15 +143,15 @@ class MeoRouter:
             allow_redirects=False,
         )
         self._validate_authenticated_response(response)
-        data = self._response_json(response, "configuracao do Wi-Fi")
+        data = self._response_json(response, "configuração do Wi-Fi")
 
         if data.get("code") not in (0, "0", None):
-            raise RouterError(f"O router rejeitou a alteracao do Wi-Fi: {data}")
+            raise RouterError(f"O router rejeitou a alteração do Wi-Fi: {data}")
 
         time.sleep(2)
         final_status = self.get_wifi_status()
         if final_status != enabled:
-            raise RouterError("O router aceitou o pedido de Wi-Fi, mas a validacao falhou.")
+            raise RouterError("O router aceitou o pedido de Wi-Fi, mas a validação falhou.")
 
     def get_bridge_status(self) -> bool:
         return not self.get_router_mode()
@@ -167,7 +167,7 @@ class MeoRouter:
 
         router_mode = str(data.get("routerMode", "")).strip()
         if router_mode not in {"0", "1"}:
-            raise RouterError(f"Nao foi possivel determinar o modo router/bridge: {data}")
+            raise RouterError(f"Não foi possível determinar o modo router/bridge: {data}")
 
         return router_mode == "1"
 
@@ -191,13 +191,13 @@ class MeoRouter:
         time.sleep(5)
         final_bridge = self.get_bridge_status()
         if final_bridge != bridge_enabled:
-            raise RouterError("O pedido de bridge foi enviado, mas a validacao falhou.")
+            raise RouterError("O pedido de bridge foi enviado, mas a validação falhou.")
 
     def get_lan_configuration(self) -> dict[str, str]:
         data = self._get_lan_json()
         dhcp = self._find_nested_dict(data, ("dhcpServer", "dhcpServer"))
         if not dhcp:
-            raise RouterError("Nao foi possivel encontrar a configuracao DHCP/LAN.")
+            raise RouterError("Não foi possível encontrar a configuração DHCP/LAN.")
 
         def value(*names: str, default: str | None = None) -> str:
             for name in names:
@@ -205,7 +205,7 @@ class MeoRouter:
                     return str(dhcp[name])
             if default is not None:
                 return default
-            raise RouterError(f"Nao foi possivel encontrar o campo LAN: {names[0]}")
+            raise RouterError(f"Não foi possível encontrar o campo LAN: {names[0]}")
 
         return {
             "dhcp_enable": value("dhcpEnable", "enblDhcpSrv"),
@@ -219,9 +219,9 @@ class MeoRouter:
         }
 
     def set_dns(self, primary_dns: str, secondary_dns: str) -> None:
-        validate_ip(primary_dns, "DNS primario")
+        validate_ip(primary_dns, "DNS primário")
         if secondary_dns:
-            validate_ip(secondary_dns, "DNS secundario")
+            validate_ip(secondary_dns, "DNS secundário")
 
         config = self.get_lan_configuration()
         dns_value = primary_dns if not secondary_dns else f"{primary_dns},{secondary_dns}"
@@ -253,7 +253,7 @@ class MeoRouter:
 
         if final_dns != expected_dns:
             raise RouterError(
-                f"A validacao do DNS falhou. Esperado {expected_dns}, recebido {final_dns}."
+                f"A validação do DNS falhou. Esperado {expected_dns}, recebido {final_dns}."
             )
 
     def get_ipv6_status(self) -> dict[str, Any]:
@@ -274,25 +274,25 @@ class MeoRouter:
         lan = self._safe(self.get_lan_configuration)
         ipv6 = self._safe(self.get_ipv6_status)
 
-        results.append(OperationResult("Wi-Fi", wifi if isinstance(wifi, str) else "Indisponivel"))
-        results.append(OperationResult("Modo", bridge if isinstance(bridge, str) else "Indisponivel"))
+        results.append(OperationResult("Wi-Fi", wifi if isinstance(wifi, str) else "Indisponível"))
+        results.append(OperationResult("Modo", bridge if isinstance(bridge, str) else "Indisponível"))
 
         if isinstance(lan, dict):
             dns_values = split_dns(lan.get("dns", ""))
             results.extend(
                 [
-                    OperationResult("Endereco LAN", lan.get("gateway", "Indisponivel")),
+                    OperationResult("Endereço LAN", lan.get("gateway", "Indisponível")),
                     OperationResult("DHCP", "ON" if lan.get("dhcp_enable") == "1" else "OFF"),
-                    OperationResult("Inicio DHCP", lan.get("ip_start", "Indisponivel")),
-                    OperationResult("Fim DHCP", lan.get("ip_end", "Indisponivel")),
-                    OperationResult("DNS primario", dns_values[0] if dns_values else "Automatico"),
+                    OperationResult("Início DHCP", lan.get("ip_start", "Indisponível")),
+                    OperationResult("Fim DHCP", lan.get("ip_end", "Indisponível")),
+                    OperationResult("DNS primário", dns_values[0] if dns_values else "Automático"),
                     OperationResult(
-                        "DNS secundario", dns_values[1] if len(dns_values) > 1 else "Nenhum"
+                        "DNS secundário", dns_values[1] if len(dns_values) > 1 else "Nenhum"
                     ),
                 ]
             )
         else:
-            results.append(OperationResult("LAN/DNS", "Indisponivel"))
+            results.append(OperationResult("LAN/DNS", "Indisponível"))
 
         if isinstance(ipv6, dict):
             results.extend(
@@ -303,9 +303,9 @@ class MeoRouter:
                 ]
             )
             if ipv6["address"]:
-                results.append(OperationResult("Endereco IPv6", ipv6["address"]))
+                results.append(OperationResult("Endereço IPv6", ipv6["address"]))
         else:
-            results.append(OperationResult("IPv6", "Indisponivel"))
+            results.append(OperationResult("IPv6", "Indisponível"))
 
         return results
 
@@ -316,7 +316,7 @@ class MeoRouter:
             allow_redirects=True,
         )
         if response.status_code not in (200, 401):
-            raise RouterError(f"Nao foi possivel abrir a pagina do router: HTTP {response.status_code}")
+            raise RouterError(f"Não foi possível abrir a página do router: HTTP {response.status_code}")
 
     def _get_nonce(self) -> str:
         candidates = [
@@ -324,7 +324,7 @@ class MeoRouter:
             f"{self.base_url}/js/uxfwk.session.loader.js",
         ]
 
-        last_error = "nao pedido"
+        last_error = "não pedido"
         for url in candidates:
             response = self.session.get(url, timeout=REQUEST_TIMEOUT)
             last_error = f"HTTP {response.status_code}"
@@ -335,7 +335,7 @@ class MeoRouter:
             if match:
                 return match.group(1)
 
-        raise RouterError(f"Nao foi possivel obter o nonce de login ({last_error}).")
+        raise RouterError(f"Não foi possível obter o nonce de login ({last_error}).")
 
     @staticmethod
     def _calculate_credentials(username: str, password: str, nonce: str) -> str:
@@ -362,7 +362,7 @@ class MeoRouter:
             allow_redirects=False,
         )
         self._validate_authenticated_response(response)
-        return self._response_json(response, "configuracao LAN")
+        return self._response_json(response, "configuração LAN")
 
     @staticmethod
     def _find_nested_dict(data: dict[str, Any], path: tuple[str, ...]) -> dict[str, Any] | None:
@@ -379,7 +379,7 @@ class MeoRouter:
         try:
             data = response.json()
         except ValueError as error:
-            raise RouterError(f"Resposta invalida em {label}: {response.text[:300]}") from error
+            raise RouterError(f"Resposta inválida em {label}: {response.text[:300]}") from error
 
         if not isinstance(data, dict):
             raise RouterError(f"Resposta inesperada em {label}: {data}")
@@ -390,10 +390,10 @@ class MeoRouter:
     def _validate_authenticated_response(response: requests.Response) -> None:
         if response.status_code in (301, 302, 303, 307, 308):
             location = response.headers.get("Location", "desconhecido")
-            raise RouterError(f"O router redirecionou para {location}. A sessao pode ter expirado.")
+            raise RouterError(f"O router redirecionou para {location}. A sessão pode ter expirado.")
 
         if response.status_code in (401, 403):
-            raise RouterError("O router rejeitou a autenticacao.")
+            raise RouterError("O router rejeitou a autenticação.")
 
         if not response.ok:
             raise RouterError(f"HTTP {response.status_code}: {response.text[:300]}")
@@ -414,7 +414,7 @@ def validate_ip(value: str, label: str) -> None:
     try:
         ipaddress.ip_address(value)
     except ValueError as error:
-        raise RouterError(f"{label} nao e um endereco IP valido: {value}") from error
+        raise RouterError(f"{label} não é um endereço IP válido: {value}") from error
 
 
 def truthy(value: Any) -> bool:
@@ -457,7 +457,7 @@ def credentials_path() -> str:
 
 def windows_encrypt(data: bytes) -> bytes:
     if os.name != "nt":
-        raise RouterError("Guardar credenciais encriptadas so e suportado no Windows.")
+        raise RouterError("Guardar credenciais encriptadas só é suportado no Windows.")
 
     crypt32 = ctypes.windll.crypt32
     kernel32 = ctypes.windll.kernel32
@@ -475,7 +475,7 @@ def windows_encrypt(data: bytes) -> bytes:
         0,
         ctypes.byref(output_blob),
     ):
-        raise RouterError("O Windows nao conseguiu encriptar as credenciais.")
+        raise RouterError("O Windows não conseguiu encriptar as credenciais.")
 
     try:
         return ctypes.string_at(output_blob.pbData, output_blob.cbData)
@@ -485,7 +485,7 @@ def windows_encrypt(data: bytes) -> bytes:
 
 def windows_decrypt(data: bytes) -> bytes:
     if os.name != "nt":
-        raise RouterError("Credenciais guardadas so sao suportadas no Windows.")
+        raise RouterError("Credenciais guardadas só são suportadas no Windows.")
 
     crypt32 = ctypes.windll.crypt32
     kernel32 = ctypes.windll.kernel32
@@ -503,7 +503,7 @@ def windows_decrypt(data: bytes) -> bytes:
         0,
         ctypes.byref(output_blob),
     ):
-        raise RouterError("O Windows nao conseguiu desencriptar as credenciais guardadas.")
+        raise RouterError("O Windows não conseguiu desencriptar as credenciais guardadas.")
 
     try:
         return ctypes.string_at(output_blob.pbData, output_blob.cbData)
@@ -555,7 +555,7 @@ def clear_screen() -> None:
 
 
 def pause() -> None:
-    input("\nCarrega Enter para continuar...")
+    input("\nPrima Enter para continuar...")
 
 
 def ask(prompt: str, default: str | None = None) -> str:
@@ -579,7 +579,7 @@ def print_status(router: MeoRouter) -> None:
 
 
 def confirm_bridge_change(current_bridge: bool, desired_bridge: bool) -> bool:
-    print("\nCONFIRMACAO DE SEGURANCA")
+    print("\nCONFIRMAÇÃO DE SEGURANÇA")
     print("-" * 52)
     print(f"Modo atual:      {'BRIDGE' if current_bridge else 'ROUTER'}")
     print(f"Modo pedido:     {'BRIDGE' if desired_bridge else 'ROUTER'}")
@@ -594,35 +594,35 @@ def connect_with_credentials(credentials: SavedCredentials) -> MeoRouter:
     router = MeoRouter(credentials.router_ip)
     print("\nA fazer login...")
     router.login(username=credentials.username, password=credentials.password)
-    print("Login concluido.")
+    print("Login concluído.")
     return router
 
 
 def ask_credentials(router_ip: str | None = None) -> SavedCredentials:
     router_ip = router_ip or ask(
-        "IP do router - carrega Enter para usar o default, ou escreve outro IP",
+        "IP do router - prima Enter para usar o valor predefinido, ou indique outro IP",
         DEFAULT_ROUTER,
     )
     username = ask("Utilizador")
     if not username:
-        raise RouterError("O utilizador nao pode ficar vazio.")
+        raise RouterError("O utilizador não pode ficar vazio.")
 
     password = getpass.getpass("Password do router: ")
     if not password:
-        raise RouterError("A password nao pode ficar vazia.")
+        raise RouterError("A password não pode ficar vazia.")
 
     return SavedCredentials(router_ip=router_ip, username=username, password=password)
 
 
 def maybe_save_credentials(credentials: SavedCredentials) -> None:
-    answer = input("\nGuardar credenciais encriptadas para a proxima vez? [s/N]: ").strip().lower()
+    answer = input("\nGuardar credenciais encriptadas para a próxima vez? [s/N]: ").strip().lower()
     if answer not in {"s", "sim", "y", "yes"}:
         return
 
     save_credentials(credentials)
     print("\nCredenciais encriptadas guardadas.")
     print(f"Ficheiro: {credentials_path()}")
-    print("Estao protegidas pelo Windows para este utilizador neste PC.")
+    print("Estão protegidas pelo Windows para este utilizador neste PC.")
 
 
 def connect_interactively(router_ip: str | None = None) -> MeoRouter:
@@ -633,7 +633,7 @@ def connect_interactively(router_ip: str | None = None) -> MeoRouter:
         print("\nCredenciais guardadas encontradas")
         print("-" * 52)
         print(f"Ficheiro:  {credentials_path()}")
-        print("Seguranca: encriptadas pelo Windows para este utilizador neste PC")
+        print("Segurança: encriptadas pelo Windows para este utilizador neste PC")
         print(f"IP router: {saved.router_ip}")
         print(f"Utilizador:{saved.username}")
         print()
@@ -655,7 +655,7 @@ def connect_interactively(router_ip: str | None = None) -> MeoRouter:
         if choice == "0":
             raise KeyboardInterrupt
 
-        print("Escolhe uma opcao valida.")
+        print("Selecione uma opção válida.")
 
     credentials = ask_credentials(router_ip)
     router = connect_with_credentials(credentials)
@@ -665,7 +665,7 @@ def connect_interactively(router_ip: str | None = None) -> MeoRouter:
 
 def interactive_menu(router: MeoRouter) -> int:
     while True:
-        print("\nO que queres fazer?")
+        print("\nSelecione uma opção:")
         print("  1 - Ver estado")
         print("  2 - Wi-Fi")
         print("  3 - DNS")
@@ -673,7 +673,7 @@ def interactive_menu(router: MeoRouter) -> int:
         print("  5 - Credenciais guardadas")
         print("  0 - Sair")
 
-        choice = input("\nOption: ").strip()
+        choice = input("\nOpção: ").strip()
 
         try:
             if choice == "1":
@@ -688,10 +688,10 @@ def interactive_menu(router: MeoRouter) -> int:
             elif choice == "5":
                 credentials_menu()
             elif choice == "0":
-                print("Ate ja.")
+                print("Até breve.")
                 return 0
             else:
-                print("Escolhe uma opcao valida.")
+                print("Selecione uma opção válida.")
         except RouterError as error:
             print(f"\nERRO: {error}")
             pause()
@@ -709,7 +709,7 @@ def wifi_menu(router: MeoRouter) -> None:
         print("  3 - Desligar Wi-Fi")
         print("  0 - Voltar")
 
-        choice = input("\nOption: ").strip()
+        choice = input("\nOpção: ").strip()
         if choice == "1":
             print(f"\nWi-Fi: {'ON' if router.get_wifi_status() else 'OFF'}")
             pause()
@@ -722,7 +722,7 @@ def wifi_menu(router: MeoRouter) -> None:
         elif choice == "0":
             return
         else:
-            print("Escolhe uma opcao valida.")
+            print("Selecione uma opção válida.")
 
 
 def dns_menu(router: MeoRouter) -> None:
@@ -733,10 +733,10 @@ def dns_menu(router: MeoRouter) -> None:
         print("  2 - Definir DNS")
         print("  0 - Voltar")
 
-        choice = input("\nOption: ").strip()
+        choice = input("\nOpção: ").strip()
         if choice == "1":
             current = router.get_lan_configuration()
-            print(f"\nDNS atual: {current.get('dns') or 'automatico'}")
+            print(f"\nDNS atual: {current.get('dns') or 'automático'}")
             pause()
         elif choice == "2":
             change_dns(router)
@@ -744,7 +744,7 @@ def dns_menu(router: MeoRouter) -> None:
         elif choice == "0":
             return
         else:
-            print("Escolhe uma opcao valida.")
+            print("Selecione uma opção válida.")
 
 
 def bridge_menu(router: MeoRouter) -> None:
@@ -756,7 +756,7 @@ def bridge_menu(router: MeoRouter) -> None:
         print("  3 - Desativar modo bridge")
         print("  0 - Voltar")
 
-        choice = input("\nOption: ").strip()
+        choice = input("\nOpção: ").strip()
         if choice == "1":
             show_bridge_status(router)
             pause()
@@ -769,7 +769,7 @@ def bridge_menu(router: MeoRouter) -> None:
         elif choice == "0":
             return
         else:
-            print("Escolhe uma opcao valida.")
+            print("Selecione uma opção válida.")
 
 
 def credentials_menu() -> None:
@@ -779,16 +779,16 @@ def credentials_menu() -> None:
         print("-" * 52)
         if saved:
             print(f"Ficheiro:  {credentials_path()}")
-            print("Seguranca: encriptadas pelo Windows para este utilizador neste PC")
+            print("Segurança: encriptadas pelo Windows para este utilizador neste PC")
             print(f"IP router: {saved.router_ip}")
             print(f"Utilizador:{saved.username}")
         else:
-            print("Nao ha credenciais guardadas.")
+            print("Não há credenciais guardadas.")
         print()
         print("  1 - Apagar credenciais guardadas")
         print("  0 - Voltar")
 
-        choice = input("\nOption: ").strip()
+        choice = input("\nOpção: ").strip()
         if choice == "1":
             delete_saved_credentials()
             print("Credenciais guardadas apagadas.")
@@ -796,35 +796,35 @@ def credentials_menu() -> None:
         elif choice == "0":
             return
         else:
-            print("Escolhe uma opcao valida.")
+            print("Selecione uma opção válida.")
 
 
 def change_wifi(router: MeoRouter, enabled: bool) -> None:
     current = router.get_wifi_status()
     print(f"\nWi-Fi atual: {'ON' if current else 'OFF'}")
     if current == enabled:
-        print("Nao e preciso alterar.")
+        print("Não é preciso alterar.")
         return
 
     router.set_wifi_status(enabled)
-    print(f"O Wi-Fi esta agora {'ON' if enabled else 'OFF'}.")
+    print(f"O Wi-Fi está agora {'ON' if enabled else 'OFF'}.")
 
 
 def change_dns(router: MeoRouter, primary: str | None = None, secondary: str | None = None) -> None:
     current = router.get_lan_configuration()
-    print(f"\nDNS atual: {current.get('dns') or 'automatico'}")
+    print(f"\nDNS atual: {current.get('dns') or 'automático'}")
 
-    primary = primary or ask("DNS primario", DEFAULT_PRIMARY_DNS)
-    secondary = secondary if secondary is not None else ask("DNS secundario", DEFAULT_SECONDARY_DNS)
+    primary = primary or ask("DNS primário", DEFAULT_PRIMARY_DNS)
+    secondary = secondary if secondary is not None else ask("DNS secundário", DEFAULT_SECONDARY_DNS)
 
     print(f"\nNovo DNS: {primary}" + (f", {secondary}" if secondary else ""))
-    answer = input("Aplicar esta configuracao de DNS? [s/N]: ").strip().lower()
+    answer = input("Aplicar esta configuração de DNS? [s/N]: ").strip().lower()
     if answer not in {"s", "sim", "y", "yes"}:
         print("Cancelado.")
         return
 
     router.set_dns(primary_dns=primary, secondary_dns=secondary)
-    print("Configuracao de DNS atualizada e validada.")
+    print("Configuração de DNS atualizada e validada.")
 
 
 def show_bridge_status(router: MeoRouter) -> None:
@@ -835,7 +835,7 @@ def show_bridge_status(router: MeoRouter) -> None:
 def change_bridge(router: MeoRouter, bridge_enabled: bool) -> None:
     current_bridge = router.get_bridge_status()
     if current_bridge == bridge_enabled:
-        print(f"\nJa esta em modo {'BRIDGE' if bridge_enabled else 'ROUTER'}.")
+        print(f"\nJá está em modo {'BRIDGE' if bridge_enabled else 'ROUTER'}.")
         return
 
     if not confirm_bridge_change(current_bridge, bridge_enabled):
@@ -844,7 +844,7 @@ def change_bridge(router: MeoRouter, bridge_enabled: bool) -> None:
 
     print("\nA alterar o modo do router...")
     router.set_bridge_status(bridge_enabled)
-    print(f"O modo agora e {'BRIDGE' if bridge_enabled else 'ROUTER'}.")
+    print(f"O modo agora é {'BRIDGE' if bridge_enabled else 'ROUTER'}.")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -852,14 +852,14 @@ def build_parser() -> argparse.ArgumentParser:
         description="Ferramenta interativa para router MEO.",
         add_help=False,
     )
-    parser._optionals.title = "opcoes"
+    parser._optionals.title = "opções"
     parser.add_argument("-h", "--help", action="help", help="mostra esta ajuda e sai")
-    parser.add_argument("--router", default=None, help=f"IP do router. Predefinicao: {DEFAULT_ROUTER}")
+    parser.add_argument("--router", default=None, help=f"IP do router. Predefinição: {DEFAULT_ROUTER}")
     parser.add_argument(
         "--command",
         choices=["menu", "status", "wifi-on", "wifi-off", "dns", "bridge-status", "bridge-on", "bridge-off"],
         default="menu",
-        help="Comando direto opcional. Por predefinicao abre o menu.",
+        help="Comando direto opcional. Por predefinição abre o menu.",
     )
     parser.add_argument("--primary-dns", default=DEFAULT_PRIMARY_DNS)
     parser.add_argument("--secondary-dns", default=DEFAULT_SECONDARY_DNS)
@@ -913,7 +913,7 @@ def main() -> int:
         return 1
     finally:
         if getattr(sys, "frozen", False):
-            input("\nCarrega Enter para fechar...")
+            input("\nPrima Enter para fechar...")
 
 
 if __name__ == "__main__":

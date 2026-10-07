@@ -2,122 +2,140 @@
 
 Developed by diogorafael
 
-Pequena ferramenta interativa de consola para routers MEO Fiber Gateway.
+Ferramenta de consola para gestão local de routers MEO Fiber Gateway.
 
-Esta ferramenta permite consultar e alterar algumas opcoes do router diretamente
-a partir do teu PC, usando a interface local do proprio router. Em alguns routers
-ou firmwares, opcoes como ligar/desligar Wi-Fi ou alterar o modo bridge podem
-estar pouco acessiveis na interface normal, ou obrigar a contactar o apoio
-tecnico. Esta ferramenta automatiza esses pedidos localmente, sem depender do
-apoio tecnico para executar essas alteracoes quando tens acesso de administrador
-ao router.
+O projeto permite consultar e alterar definições do router diretamente a partir
+do computador do utilizador, através da interface local do equipamento. Em
+alguns modelos ou versões de firmware, operações como ligar/desligar o Wi-Fi ou
+alterar o modo bridge podem não estar facilmente disponíveis na interface
+normal, ou podem exigir contacto com o apoio técnico. Esta ferramenta automatiza
+esses pedidos localmente, desde que o utilizador tenha credenciais de
+administrador do router.
 
-A ferramenta pede o IP do router, utilizador e password. Depois mostra um menu
-com:
+## Funcionalidades
 
-- Estado
-- Menu de Wi-Fi
-- Menu de DNS
-- Menu de modo bridge
-- Menu de credenciais guardadas
-- Ativar/desativar modo bridge com confirmacao extra de seguranca
+- Consulta do estado do router
+- Consulta e alteração do estado do Wi-Fi
+- Configuração de DNS
+- Consulta e alteração do modo bridge
+- Confirmação de segurança antes de alterações ao modo bridge
+- Armazenamento opcional de credenciais encriptadas em Windows
+- Execução através de `.exe` em Windows ou diretamente por Python
 
-IP default do router: `192.168.1.254`
+## Predefinições
 
-DNS default:
+IP predefinido do router:
 
-- Primario: `1.1.1.1`
-- Secundario: `212.55.154.190`
+```text
+192.168.1.254
+```
 
-## Como correr
+DNS predefinido:
 
-Tens duas opcoes.
+```text
+Primário:   1.1.1.1
+Secundário: 212.55.154.190
+```
 
-### Opcao 1: EXE para Windows
+## Tecnologias utilizadas
 
-Duplo clique em:
+- Python 3
+- `requests`, para comunicação HTTP com a interface local do router
+- Windows DPAPI, para encriptação local de credenciais em Windows
+- PyInstaller, para geração do executável standalone
+- GitHub Actions, para validação do projeto e geração de artefactos
+
+## Execução
+
+### Windows, através do executável
+
+Executar:
 
 ```text
 MEO-Router-Tool.exe
 ```
 
-Esta e a forma mais simples. Nao precisa de Python instalado.
+Esta é a opção recomendada em Windows, pois não requer instalação manual de
+Python.
 
-### Opcao 2: Python, Windows/Linux/macOS
+### Python, Windows/Linux/macOS
 
-Duplo clique em:
-
-```text
-run_from_source.bat
-```
-
-Esta opcao corre o ficheiro Python diretamente e precisa de Python instalado.
-
-Tambem podes correr manualmente:
+Executar:
 
 ```text
 python meo_router_tool.py
 ```
 
-Em Linux/macOS, usa a opcao Python. A gestao de credenciais guardadas foi feita
-com a protecao do Windows, por isso essa parte so esta disponivel em Windows.
+Em Windows, também é possível usar:
+
+```text
+run_from_source.bat
+```
+
+Em Linux/macOS, deve ser usada a execução por Python. A funcionalidade de
+credenciais guardadas foi implementada com Windows DPAPI, pelo que está
+disponível apenas em Windows.
 
 ## Privacidade e dados
 
-A ferramenta corre localmente no teu PC.
+A ferramenta corre localmente no computador do utilizador.
 
-O codigo foi preparado para comunicar apenas com o IP do router que inseres no
-inicio, por exemplo:
+O código comunica apenas com o IP do router indicado no início da execução, por
+exemplo:
 
 ```text
 http://192.168.1.254
 ```
 
-Nao envia utilizador, password, configuracoes do router, DNS, estado de Wi-Fi,
-modo bridge, ou qualquer outro dado pessoal para GitHub, cloud, servidores
-externos, APIs externas, ou para o developer.
+Não são enviados utilizador, password, configurações do router, DNS, estado de
+Wi-Fi, modo bridge ou quaisquer outros dados pessoais para GitHub, cloud,
+servidores externos, APIs externas ou para o programador.
 
-As credenciais sao usadas apenas para fazer login na pagina local do router. Se
-escolheres guardar credenciais, elas ficam num ficheiro local encriptado pelo
-Windows para o teu utilizador neste PC.
-
-## Criar o EXE standalone
-
-Duplo clique em:
-
-```text
-build_exe.bat
-```
-
-O script de build cria uma pasta temporaria `.venv-build`, instala o
-PyInstaller, e cria:
-
-```text
-dist\MEO-Router-Tool.exe
-```
-
-Depois podes correr o `.exe` com duplo clique.
+As credenciais são usadas apenas para autenticação na página local do router. Se
+o utilizador optar por guardar credenciais, estas ficam num ficheiro local
+encriptado pelo Windows para o utilizador atual do sistema.
 
 ## Credenciais guardadas
 
-Depois de um login manual com sucesso, a ferramenta pode guardar as credenciais
-em:
+Após um login manual bem-sucedido, a ferramenta pode guardar credenciais em:
 
 ```text
 meo-router-credentials.encrypted.txt
 ```
 
-O ficheiro e criado ao lado do EXE. Fica encriptado com a protecao do Windows,
-por isso so deve desencriptar para o mesmo utilizador Windows no mesmo PC.
+O ficheiro é criado na mesma pasta do executável. Em Windows, as credenciais são
+encriptadas com a proteção do próprio sistema operativo e deverão ser
+desencriptáveis apenas pelo mesmo utilizador no mesmo computador.
 
-## Nota de seguranca
+## Segurança e responsabilidade
 
-O modo bridge pode interromper a ligacao da rede de casa. A ferramenta pede
-sempre para escreveres `YES` antes de alterar o modo bridge.
+A alteração do modo bridge pode interromper a ligação da rede local. Por esse
+motivo, a ferramenta exige confirmação explícita com `YES` antes de executar
+qualquer alteração ao modo bridge.
+
+A utilização desta ferramenta é feita por conta e risco do utilizador. O autor
+não se responsabiliza por erros de configuração, indisponibilidade de rede,
+perda de acesso ao router, interrupções de serviço ou quaisquer outros efeitos
+resultantes da utilização da ferramenta.
+
+## Criar o executável
+
+Executar:
+
+```text
+build_exe.bat
+```
+
+O script cria um ambiente local de build, instala as dependências necessárias e
+gera:
+
+```text
+dist\MEO-Router-Tool.exe
+```
 
 ## Comandos diretos
 
-Normalmente o EXE abre o menu. Tambem suporta comandos diretos:
+Além do menu interativo, a ferramenta suporta comandos diretos:
 
 ```text
 MEO-Router-Tool.exe --command status
@@ -129,5 +147,5 @@ MEO-Router-Tool.exe --command bridge-on
 MEO-Router-Tool.exe --command bridge-off
 ```
 
-A ferramenta continua a pedir utilizador e password, exceto quando usas
-credenciais guardadas.
+Quando não existem credenciais guardadas, a ferramenta solicita utilizador e
+password antes de executar o comando.
