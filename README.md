@@ -14,18 +14,54 @@ administrador do router.
 
 ## Funcionalidades
 
-- Consulta do estado do router
-- Consulta e alteração do estado do Wi-Fi
-- Configuração de DNS
-- Consulta e alteração do modo bridge
-- Confirmação de segurança antes de alterações ao modo bridge
-- Presets de DNS: Cloudflare, Google, Quad9 e MEO
-- Configuração manual de DNS
-- Listagem, criação e remoção de regras de port forwarding IPv4
-- Consulta, ativação e desativação de UPnP
-- Listagem, criação e remoção de DNS dinâmico DynDNS/No-IP
-- Armazenamento opcional de credenciais encriptadas em Windows
-- Execução através de `.exe` em Windows ou diretamente por Python
+### Estado e autenticação
+
+- Login local no router através das credenciais de administrador.
+- Consulta do estado geral do router.
+- Armazenamento opcional de credenciais encriptadas em Windows.
+- Execução através de `.exe` em Windows ou diretamente por Python.
+
+### Wi-Fi
+
+- Consulta do estado do Wi-Fi.
+- Ativação e desativação do Wi-Fi.
+
+### DNS
+
+- Consulta do DNS configurado no router.
+- Configuração manual de DNS primário e secundário.
+- Presets rápidos:
+  - Cloudflare: `1.1.1.1` / `1.0.0.1`
+  - Google: `8.8.8.8` / `8.8.4.4`
+  - Quad9: `9.9.9.9` / `149.112.112.112`
+  - MEO: `212.55.154.190` / `212.55.154.174`
+
+### Modo bridge
+
+- Consulta do modo atual: router ou bridge.
+- Apresentação do valor bruto `routerMode` devolvido pelo router.
+- Ativação e desativação do modo bridge.
+- Confirmação de segurança antes de qualquer alteração ao modo bridge.
+- Aviso de utilização da porta LAN 4 ao ativar o modo bridge.
+
+### Port forwarding
+
+- Listagem de regras IPv4 existentes.
+- Criação de regras de encaminhamento de portos.
+- Remoção de regras existentes.
+- Suporte para TCP, UDP e TCP/UDP.
+
+### UPnP
+
+- Consulta do estado do UPnP.
+- Ativação e desativação do UPnP.
+
+### DNS dinâmico
+
+- Listagem de configurações de DNS dinâmico.
+- Criação de configurações DynDNS.
+- Criação de configurações No-IP.
+- Remoção de configurações existentes.
 
 ## Compatibilidade com modo bridge
 
@@ -69,6 +105,13 @@ MEO-Router-Tool.exe
 
 Esta é a opção recomendada em Windows, pois não requer instalação manual de
 Python.
+
+Também é disponibilizado um pacote `.zip` com o executável, código-fonte,
+scripts e documentação:
+
+```text
+MEO-Router-Tool-Windows.zip
+```
 
 ### Python, Windows/Linux/macOS
 
@@ -154,7 +197,8 @@ dist\MEO-Router-Tool.exe
 
 ## Comandos diretos
 
-Além do menu interativo, a ferramenta suporta comandos diretos:
+A maioria das funcionalidades está disponível através do menu interativo. Além
+do menu, a ferramenta suporta alguns comandos diretos:
 
 ```text
 MEO-Router-Tool.exe --command status
@@ -168,3 +212,6 @@ MEO-Router-Tool.exe --command bridge-off
 
 Quando não existem credenciais guardadas, a ferramenta solicita utilizador e
 password antes de executar o comando.
+
+As funcionalidades de port forwarding, UPnP e DNS dinâmico estão disponíveis no
+menu interativo.
