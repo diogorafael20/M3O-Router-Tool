@@ -1,4 +1,4 @@
-# Ferramenta Router MEO para Windows
+# Ferramenta Router MEO
 
 Developed by diogorafael
 
@@ -33,7 +33,7 @@ DNS default:
 
 Tens duas opcoes.
 
-### Opcao 1: EXE
+### Opcao 1: EXE para Windows
 
 Duplo clique em:
 
@@ -43,7 +43,7 @@ MEO-Router-Tool.exe
 
 Esta e a forma mais simples. Nao precisa de Python instalado.
 
-### Opcao 2: Python
+### Opcao 2: Python, Windows/Linux/macOS
 
 Duplo clique em:
 
@@ -58,6 +58,9 @@ Tambem podes correr manualmente:
 ```text
 python meo_router_tool.py
 ```
+
+Em Linux/macOS, usa a opcao Python. A gestao de credenciais guardadas foi feita
+com a protecao do Windows, por isso essa parte so esta disponivel em Windows.
 
 ## Privacidade e dados
 
