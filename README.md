@@ -19,6 +19,11 @@ administrador do router.
 - Configuração de DNS
 - Consulta e alteração do modo bridge
 - Confirmação de segurança antes de alterações ao modo bridge
+- Presets de DNS: Cloudflare, Google, Quad9 e MEO
+- Configuração manual de DNS
+- Listagem, criação e remoção de regras de port forwarding IPv4
+- Consulta, ativação e desativação de UPnP
+- Listagem, criação e remoção de DNS dinâmico DynDNS/No-IP
 - Armazenamento opcional de credenciais encriptadas em Windows
 - Execução através de `.exe` em Windows ou diretamente por Python
 
@@ -120,10 +125,17 @@ A alteração do modo bridge pode interromper a ligação da rede local. Por ess
 motivo, a ferramenta exige confirmação explícita com `YES` antes de executar
 qualquer alteração ao modo bridge.
 
+Ao ativar o modo bridge, a porta LAN 4 passa a ser usada para bridge, conforme
+indicado na interface do router MEO.
+
 A utilização desta ferramenta é feita por conta e risco do utilizador. O autor
 não se responsabiliza por erros de configuração, indisponibilidade de rede,
 perda de acesso ao router, interrupções de serviço ou quaisquer outros efeitos
 resultantes da utilização da ferramenta.
+
+As funcionalidades de port forwarding, UPnP e DNS dinâmico alteram diretamente
+exposição e encaminhamento de serviços na rede. Devem ser usadas apenas quando o
+utilizador compreende o impacto de cada alteração.
 
 ## Criar o executável
 

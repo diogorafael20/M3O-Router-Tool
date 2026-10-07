@@ -16,6 +16,7 @@ import ctypes
 import getpass
 import hashlib
 import hmac
+import html
 import ipaddress
 import json
 import os
@@ -36,6 +37,8 @@ DEFAULT_PRIMARY_DNS = "1.1.1.1"
 DEFAULT_SECONDARY_DNS = "212.55.154.190"
 REQUEST_TIMEOUT = 12
 CREDENTIALS_FILENAME = "meo-router-credentials.encrypted.txt"
+PROTOCOLS = {"1": ("TCP", "1"), "2": ("UDP", "2"), "3": ("TCP/UDP", "0")}
+DDNS_PROVIDERS = {"1": ("DynDNS", "1"), "2": ("No-IP", "2")}
 
 
 class RouterError(Exception):
@@ -53,6 +56,29 @@ class SavedCredentials:
     router_ip: str
     username: str
     password: str
+
+
+@dataclass
+class PortForwardEntry:
+    name: str
+    external_start: str
+    external_end: str
+    protocol: str
+    internal_start: str
+    internal_end: str
+    server_ip: str
+    interface: str
+    remove_token: str
+
+
+@dataclass
+class DdnsEntry:
+    hostname: str
+    username: str
+    provider: str
+    interface: str
+    status: str
+    remove_token: str
 
 
 class MeoRouter:
@@ -254,6 +280,131 @@ class MeoRouter:
                 f"A validação do DNS falhou. Esperado {expected_dns}, recebido {final_dns}."
             )
 
+    def get_upnp_status(self) -> bool:
+        response = self.session.get(
+            f"{self.base_url}/ss-json/fgw.contents/fgw.contents.json",
+            timeout=REQUEST_TIMEOUT,
+            allow_redirects=False,
+        )
+        self._validate_authenticated_response(response)
+        data = self._response_json(response, "estado UPnP")
+        return str(data.get("upnp", "0")).strip() == "1"
+
+    def set_upnp_status(self, enabled: bool) -> None:
+        response = self.session.get(
+            f"{self.base_url}/upnpcfg.cgi",
+            params={"enblUpnp": "1" if enabled else "0"},
+            timeout=REQUEST_TIMEOUT,
+            allow_redirects=False,
+        )
+        self._validate_authenticated_response(response)
+
+        time.sleep(2)
+        final_status = self.get_upnp_status()
+        if final_status != enabled:
+            raise RouterError("O pedido de UPnP foi enviado, mas a validação falhou.")
+
+    def get_port_forward_entries(self) -> list[PortForwardEntry]:
+        response = self.session.get(
+            f"{self.base_url}/ss-json/fgw.security/fgw.natv4.json",
+            timeout=REQUEST_TIMEOUT,
+            allow_redirects=False,
+        )
+        self._validate_authenticated_response(response)
+        data = self._response_json(response, "regras de port forwarding")
+        return parse_port_forward_entries(str(data.get("portForwarding") or ""))
+
+    def add_port_forward(
+        self,
+        name: str,
+        server_ip: str,
+        protocol: str,
+        external_start: str,
+        external_end: str,
+        internal_start: str,
+        internal_end: str,
+    ) -> None:
+        validate_ip(server_ip, "IP interno")
+        for label, value in {
+            "porta externa inicial": external_start,
+            "porta externa final": external_end,
+            "porta interna inicial": internal_start,
+            "porta interna final": internal_end,
+        }.items():
+            validate_port(value, label)
+
+        response = self.session.get(
+            f"{self.base_url}/scvrtsrv.cmd",
+            params={
+                "action": "add",
+                "srvName": name,
+                "dstWanIf": "erouter0",
+                "srvAddr": server_ip,
+                "proto": f"{protocol},",
+                "eStart": f"{external_start},",
+                "eEnd": f"{external_end},",
+                "iStart": f"{internal_start},",
+                "iEnd": f"{internal_end},",
+            },
+            timeout=REQUEST_TIMEOUT,
+            allow_redirects=False,
+        )
+        self._validate_authenticated_response(response)
+
+        time.sleep(2)
+        entries = self.get_port_forward_entries()
+        if not any(entry.name == name and entry.server_ip == server_ip for entry in entries):
+            raise RouterError("A regra foi enviada, mas não apareceu na validação.")
+
+    def remove_port_forward(self, remove_token: str) -> None:
+        response = self.session.get(
+            f"{self.base_url}/scvrtsrv.cmd",
+            params={"action": "remove", "rmLst": remove_token},
+            timeout=REQUEST_TIMEOUT,
+            allow_redirects=False,
+        )
+        self._validate_authenticated_response(response)
+
+    def get_ddns_entries(self) -> list[DdnsEntry]:
+        response = self.session.get(
+            f"{self.base_url}/ss-json/fgw.contents/fgw.contents.dyndns.json",
+            timeout=REQUEST_TIMEOUT,
+            allow_redirects=False,
+        )
+        self._validate_authenticated_response(response)
+        data = self._response_json(response, "DNS dinâmico")
+        return parse_ddns_entries(str(data.get("dyn") or ""))
+
+    def add_ddns(self, provider: str, username: str, password: str, hostname: str) -> None:
+        response = self.session.get(
+            f"{self.base_url}/ddnsmngr.cmd",
+            params={
+                "action": "add",
+                "service": provider,
+                "username": username,
+                "password": password,
+                "hostname": hostname,
+                "iface": "erouter0",
+            },
+            timeout=REQUEST_TIMEOUT,
+            allow_redirects=False,
+        )
+        self._validate_authenticated_response(response)
+
+        time.sleep(2)
+        entries = self.get_ddns_entries()
+        if not any(entry.hostname == hostname for entry in entries):
+            raise RouterError("A configuração DDNS foi enviada, mas não apareceu na validação.")
+
+    def remove_ddns(self, hostname: str) -> None:
+        response = self.session.get(
+            f"{self.base_url}/ddnsmngr.cmd",
+            params={"action": "remove", "rmLst": hostname},
+            timeout=REQUEST_TIMEOUT,
+            allow_redirects=False,
+        )
+        self._validate_authenticated_response(response)
+
     def get_ipv6_status(self) -> dict[str, Any]:
         data = self._get_lan_json()
         flat = flatten_dict(data)
@@ -408,11 +559,85 @@ def split_dns(value: str) -> list[str]:
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
+def strip_html(value: str) -> str:
+    value = re.sub(r"<[^>]+>", "", value)
+    return html.unescape(value).strip()
+
+
+def html_table_rows(value: str) -> list[tuple[list[str], str]]:
+    rows: list[tuple[list[str], str]] = []
+    for row in re.findall(r"<tr\b.*?</tr>", value, flags=re.IGNORECASE | re.DOTALL):
+        cells = [
+            strip_html(cell)
+            for cell in re.findall(r"<td\b[^>]*>(.*?)</td>", row, flags=re.IGNORECASE | re.DOTALL)
+        ]
+        token_match = re.search(
+            r"name=['\"]rml['\"][^>]*value=['\"]([^'\"]+)['\"]",
+            row,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+        rows.append((cells, html.unescape(token_match.group(1)) if token_match else ""))
+    return rows
+
+
+def protocol_label(value: str) -> str:
+    return {"0": "TCP/UDP", "1": "TCP", "2": "UDP"}.get(str(value), str(value))
+
+
+def parse_port_forward_entries(value: str) -> list[PortForwardEntry]:
+    entries: list[PortForwardEntry] = []
+    for cells, remove_token in html_table_rows(value):
+        if len(cells) < 8:
+            continue
+        entries.append(
+            PortForwardEntry(
+                name=cells[0],
+                external_start=cells[1],
+                external_end=cells[2],
+                protocol=protocol_label(cells[3]),
+                internal_start=cells[4],
+                internal_end=cells[5],
+                server_ip=cells[6],
+                interface=cells[7],
+                remove_token=remove_token,
+            )
+        )
+    return entries
+
+
+def parse_ddns_entries(value: str) -> list[DdnsEntry]:
+    entries: list[DdnsEntry] = []
+    for cells, remove_token in html_table_rows(value):
+        if len(cells) < 5:
+            continue
+        entries.append(
+            DdnsEntry(
+                hostname=cells[0],
+                username=cells[1],
+                provider=cells[2],
+                interface=cells[3],
+                status=cells[4],
+                remove_token=remove_token,
+            )
+        )
+    return entries
+
+
 def validate_ip(value: str, label: str) -> None:
     try:
         ipaddress.ip_address(value)
     except ValueError as error:
         raise RouterError(f"{label} não é um endereço IP válido: {value}") from error
+
+
+def validate_port(value: str, label: str) -> None:
+    try:
+        port = int(value)
+    except ValueError as error:
+        raise RouterError(f"{label} não é uma porta válida: {value}") from error
+
+    if port < 1 or port > 65535:
+        raise RouterError(f"{label} deve estar entre 1 e 65535.")
 
 
 def truthy(value: Any) -> bool:
@@ -583,6 +808,8 @@ def confirm_bridge_change(current_bridge: bool, desired_bridge: bool) -> bool:
     print(f"Modo pedido:     {'BRIDGE' if desired_bridge else 'ROUTER'}")
     print()
     print("Alterar o modo bridge pode interromper a rede de casa.")
+    if desired_bridge:
+        print("Ao ativar o modo bridge, a porta LAN 4 será usada para bridge.")
     print("Continua apenas se tiveres a certeza.")
     print()
     return input("Escreve YES para continuar: ").strip() == "YES"
@@ -668,7 +895,10 @@ def interactive_menu(router: MeoRouter) -> int:
         print("  2 - Wi-Fi")
         print("  3 - DNS")
         print("  4 - Modo bridge")
-        print("  5 - Credenciais guardadas")
+        print("  5 - Port forwarding")
+        print("  6 - UPnP")
+        print("  7 - DNS dinâmico")
+        print("  8 - Credenciais guardadas")
         print("  0 - Sair")
 
         choice = input("\nOpção: ").strip()
@@ -684,6 +914,12 @@ def interactive_menu(router: MeoRouter) -> int:
             elif choice == "4":
                 bridge_menu(router)
             elif choice == "5":
+                port_forward_menu(router)
+            elif choice == "6":
+                upnp_menu(router)
+            elif choice == "7":
+                ddns_menu(router)
+            elif choice == "8":
                 credentials_menu()
             elif choice == "0":
                 print("Até breve.")
@@ -728,7 +964,11 @@ def dns_menu(router: MeoRouter) -> None:
         print("\nDNS")
         print("-" * 52)
         print("  1 - Ver DNS atual")
-        print("  2 - Definir DNS")
+        print("  2 - Definir DNS manualmente")
+        print("  3 - Cloudflare: 1.1.1.1 / 1.0.0.1")
+        print("  4 - Google: 8.8.8.8 / 8.8.4.4")
+        print("  5 - Quad9: 9.9.9.9 / 149.112.112.112")
+        print("  6 - MEO: 212.55.154.190 / 212.55.154.174")
         print("  0 - Voltar")
 
         choice = input("\nOpção: ").strip()
@@ -738,6 +978,18 @@ def dns_menu(router: MeoRouter) -> None:
             pause()
         elif choice == "2":
             change_dns(router)
+            pause()
+        elif choice == "3":
+            change_dns(router, "1.1.1.1", "1.0.0.1")
+            pause()
+        elif choice == "4":
+            change_dns(router, "8.8.8.8", "8.8.4.4")
+            pause()
+        elif choice == "5":
+            change_dns(router, "9.9.9.9", "149.112.112.112")
+            pause()
+        elif choice == "6":
+            change_dns(router, "212.55.154.190", "212.55.154.174")
             pause()
         elif choice == "0":
             return
@@ -768,6 +1020,217 @@ def bridge_menu(router: MeoRouter) -> None:
             return
         else:
             print("Selecione uma opção válida.")
+
+
+def port_forward_menu(router: MeoRouter) -> None:
+    while True:
+        print("\nPort forwarding")
+        print("-" * 52)
+        print("  1 - Listar regras")
+        print("  2 - Adicionar regra")
+        print("  3 - Remover regra")
+        print("  0 - Voltar")
+
+        choice = input("\nOpção: ").strip()
+        if choice == "1":
+            list_port_forward_entries(router)
+            pause()
+        elif choice == "2":
+            add_port_forward_interactive(router)
+            pause()
+        elif choice == "3":
+            remove_port_forward_interactive(router)
+            pause()
+        elif choice == "0":
+            return
+        else:
+            print("Selecione uma opção válida.")
+
+
+def list_port_forward_entries(router: MeoRouter) -> list[PortForwardEntry]:
+    entries = router.get_port_forward_entries()
+    if not entries:
+        print("\nNão existem regras de port forwarding.")
+        return entries
+
+    print("\nRegras de port forwarding")
+    print("-" * 52)
+    for index, entry in enumerate(entries, start=1):
+        print(
+            f"{index}. {entry.name} | {entry.protocol} | "
+            f"{entry.external_start}-{entry.external_end} -> "
+            f"{entry.server_ip}:{entry.internal_start}-{entry.internal_end}"
+        )
+    return entries
+
+
+def add_port_forward_interactive(router: MeoRouter) -> None:
+    print("\nNova regra de port forwarding")
+    print("-" * 52)
+    name = ask("Nome da regra")
+    server_ip = ask("IP interno")
+    external_start = ask("Porta externa inicial")
+    external_end = ask("Porta externa final", external_start)
+    internal_start = ask("Porta interna inicial", external_start)
+    internal_end = ask("Porta interna final", internal_start)
+
+    print("\nProtocolo")
+    print("  1 - TCP")
+    print("  2 - UDP")
+    print("  3 - TCP/UDP")
+    protocol_choice = ask("Opção", "3")
+    if protocol_choice not in PROTOCOLS:
+        raise RouterError("Protocolo inválido.")
+
+    protocol_label_value, protocol_value = PROTOCOLS[protocol_choice]
+    print()
+    print(f"Nome:       {name}")
+    print(f"Destino:    {server_ip}")
+    print(f"Protocolo:  {protocol_label_value}")
+    print(f"Externa:    {external_start}-{external_end}")
+    print(f"Interna:    {internal_start}-{internal_end}")
+
+    answer = input("Adicionar esta regra? [s/N]: ").strip().lower()
+    if answer not in {"s", "sim", "y", "yes"}:
+        print("Cancelado.")
+        return
+
+    router.add_port_forward(
+        name=name,
+        server_ip=server_ip,
+        protocol=protocol_value,
+        external_start=external_start,
+        external_end=external_end,
+        internal_start=internal_start,
+        internal_end=internal_end,
+    )
+    print("Regra adicionada e validada.")
+
+
+def remove_port_forward_interactive(router: MeoRouter) -> None:
+    entries = list_port_forward_entries(router)
+    if not entries:
+        return
+
+    selected = ask("Número da regra a remover")
+    try:
+        entry = entries[int(selected) - 1]
+    except (ValueError, IndexError) as error:
+        raise RouterError("Seleção inválida.") from error
+
+    answer = input(f"Remover a regra '{entry.name}'? [s/N]: ").strip().lower()
+    if answer not in {"s", "sim", "y", "yes"}:
+        print("Cancelado.")
+        return
+
+    router.remove_port_forward(entry.remove_token)
+    print("Regra removida.")
+
+
+def upnp_menu(router: MeoRouter) -> None:
+    while True:
+        print("\nUPnP")
+        print("-" * 52)
+        print("  1 - Ver estado")
+        print("  2 - Ativar UPnP")
+        print("  3 - Desativar UPnP")
+        print("  0 - Voltar")
+
+        choice = input("\nOpção: ").strip()
+        if choice == "1":
+            print(f"\nUPnP: {'ON' if router.get_upnp_status() else 'OFF'}")
+            pause()
+        elif choice == "2":
+            router.set_upnp_status(True)
+            print("UPnP ativado e validado.")
+            pause()
+        elif choice == "3":
+            router.set_upnp_status(False)
+            print("UPnP desativado e validado.")
+            pause()
+        elif choice == "0":
+            return
+        else:
+            print("Selecione uma opção válida.")
+
+
+def ddns_menu(router: MeoRouter) -> None:
+    while True:
+        print("\nDNS dinâmico")
+        print("-" * 52)
+        print("  1 - Listar configurações")
+        print("  2 - Adicionar DynDNS")
+        print("  3 - Adicionar No-IP")
+        print("  4 - Remover configuração")
+        print("  0 - Voltar")
+
+        choice = input("\nOpção: ").strip()
+        if choice == "1":
+            list_ddns_entries(router)
+            pause()
+        elif choice == "2":
+            add_ddns_interactive(router, "1")
+            pause()
+        elif choice == "3":
+            add_ddns_interactive(router, "2")
+            pause()
+        elif choice == "4":
+            remove_ddns_interactive(router)
+            pause()
+        elif choice == "0":
+            return
+        else:
+            print("Selecione uma opção válida.")
+
+
+def list_ddns_entries(router: MeoRouter) -> list[DdnsEntry]:
+    entries = router.get_ddns_entries()
+    if not entries:
+        print("\nNão existem configurações de DNS dinâmico.")
+        return entries
+
+    print("\nConfigurações de DNS dinâmico")
+    print("-" * 52)
+    for index, entry in enumerate(entries, start=1):
+        print(f"{index}. {entry.provider} | {entry.hostname} | {entry.username} | {entry.interface}")
+    return entries
+
+
+def add_ddns_interactive(router: MeoRouter, provider: str) -> None:
+    provider_label = "DynDNS" if provider == "1" else "No-IP"
+    print(f"\nAdicionar {provider_label}")
+    print("-" * 52)
+    username = ask("Utilizador/email")
+    password = getpass.getpass("Password DDNS: ")
+    hostname = ask("Hostname")
+
+    answer = input(f"Adicionar configuração {provider_label} para '{hostname}'? [s/N]: ").strip().lower()
+    if answer not in {"s", "sim", "y", "yes"}:
+        print("Cancelado.")
+        return
+
+    router.add_ddns(provider=provider, username=username, password=password, hostname=hostname)
+    print("Configuração DDNS adicionada e validada.")
+
+
+def remove_ddns_interactive(router: MeoRouter) -> None:
+    entries = list_ddns_entries(router)
+    if not entries:
+        return
+
+    selected = ask("Número da configuração a remover")
+    try:
+        entry = entries[int(selected) - 1]
+    except (ValueError, IndexError) as error:
+        raise RouterError("Seleção inválida.") from error
+
+    answer = input(f"Remover DDNS '{entry.hostname}'? [s/N]: ").strip().lower()
+    if answer not in {"s", "sim", "y", "yes"}:
+        print("Cancelado.")
+        return
+
+    router.remove_ddns(entry.remove_token or entry.hostname)
+    print("Configuração DDNS removida.")
 
 
 def credentials_menu() -> None:
