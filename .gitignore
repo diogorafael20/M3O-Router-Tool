@@ -1,0 +1,7 @@
+# Developed by diogorafael
+
+__pycache__/
+.venv-build/
+build/
+dist/
+*.spec
