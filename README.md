@@ -188,6 +188,9 @@ password antes de executar o comando.
 As funcionalidades de port forwarding, UPnP e DNS dinâmico estão disponíveis no
 menu interativo.
 
+
+## Não são enviados quaisquer dados pessoais para GitHub, Cloud, Servidores externos, APIs externas ou para o Programador.
+
 ## Aviso legal
 
 Este projeto é independente e não é afiliado, patrocinado, aprovado ou mantido pela MEO, Altice Portugal ou qualquer entidade associada.
@@ -195,7 +198,6 @@ Este projeto é independente e não é afiliado, patrocinado, aprovado ou mantid
 A ferramenta comunica apenas com a interface local do router, mediante credenciais de administrador fornecidas pelo utilizador. O objetivo é automatizar operações disponíveis no próprio equipamento/router do utilizador.
 
 
-## Não são enviados quaisquer dados pessoais para GitHub, Cloud, Servidores externos, APIs externas ou para o Programador.
 Todas as marcas, nomes comerciais e referências a MEO pertencem aos respetivos proprietários e são utilizados apenas para identificação e compatibilidade.
 
 A utilização da ferramenta é feita por conta e risco do utilizador. O autor não se responsabiliza por erros de configuração, indisponibilidade de rede, perda de acesso ao router, interrupções de serviço ou quaisquer outros efeitos resultantes da utilização da ferramenta.
