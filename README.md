@@ -119,10 +119,6 @@ exemplo:
 http://192.168.1.254
 ```
 
-## Não são enviados utilizador, password, configurações do router, DNS, estado de
-## Wi-Fi, modo bridge ou quaisquer outros dados pessoais para GitHub, cloud,
-## servidores externos, APIs externas ou para o programador.
-
 As credenciais são usadas apenas para autenticação na página local do router. Se
 o utilizador optar por guardar credenciais, estas ficam num ficheiro local
 encriptado pelo Windows para o utilizador atual do sistema.
@@ -198,6 +194,8 @@ Este projeto é independente e não é afiliado, patrocinado, aprovado ou mantid
 
 A ferramenta comunica apenas com a interface local do router, mediante credenciais de administrador fornecidas pelo utilizador. O objetivo é automatizar operações disponíveis no próprio equipamento/router do utilizador.
 
+
+## Não são enviados quaisquer dados pessoais para GitHub, Cloud, Servidores externos, APIs externas ou para o Programador.
 Todas as marcas, nomes comerciais e referências a MEO pertencem aos respetivos proprietários e são utilizados apenas para identificação e compatibilidade.
 
 A utilização da ferramenta é feita por conta e risco do utilizador. O autor não se responsabiliza por erros de configuração, indisponibilidade de rede, perda de acesso ao router, interrupções de serviço ou quaisquer outros efeitos resultantes da utilização da ferramenta.
