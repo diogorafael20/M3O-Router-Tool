@@ -1,6 +1,4 @@
-# Ferramenta Router MEO
-
-Developed by diogorafael
+# Router MEO
 
 Ferramenta de consola para gestão local de routers MEO Fiber Gateway.
 
@@ -30,16 +28,10 @@ administrador do router.
 
 - Consulta do DNS configurado no router.
 - Configuração manual de DNS primário e secundário.
-- Presets rápidos:
-  - Cloudflare: `1.1.1.1` / `1.0.0.1`
-  - Google: `8.8.8.8` / `8.8.4.4`
-  - Quad9: `9.9.9.9` / `149.112.112.112`
-  - MEO: `212.55.154.190` / `212.55.154.174`
 
 ### Modo bridge
 
 - Consulta do modo atual: router ou bridge.
-- Apresentação do valor bruto `routerMode` devolvido pelo router.
 - Ativação e desativação do modo bridge.
 - Confirmação de segurança antes de qualquer alteração ao modo bridge.
 - Aviso de utilização da porta LAN 4 ao ativar o modo bridge.
@@ -49,7 +41,7 @@ administrador do router.
 - Listagem de regras IPv4 existentes.
 - Criação de regras de encaminhamento de portos.
 - Remoção de regras existentes.
-- Suporte para TCP, UDP e TCP/UDP.
+
 
 ### UPnP
 
@@ -65,9 +57,9 @@ administrador do router.
 
 ## Compatibilidade com modo bridge
 
-Nos routers testados, o estado local `routerMode=1` corresponde a modo bridge
-ativo e `routerMode=0` corresponde a modo router. A ferramenta apresenta também
-o valor bruto `routerMode` no menu de bridge para facilitar validação em
+O estado 'routerMode=1' corresponde a modo bridge
+ativo e 'routerMode=0' corresponde a modo router. A ferramenta apresenta também
+o valor bruto 'routerMode' no menu de bridge para facilitar validação em
 firmwares diferentes.
 
 ## Predefinições
@@ -77,21 +69,6 @@ IP predefinido do router:
 ```text
 192.168.1.254
 ```
-
-DNS predefinido:
-
-```text
-Primário:   1.1.1.1
-Secundário: 212.55.154.190
-```
-
-## Tecnologias utilizadas
-
-- Python 3
-- `requests`, para comunicação HTTP com a interface local do router
-- Windows DPAPI, para encriptação local de credenciais em Windows
-- PyInstaller, para geração do executável standalone
-- GitHub Actions, para validação do projeto e geração de artefactos
 
 ## Execução
 
@@ -142,9 +119,9 @@ exemplo:
 http://192.168.1.254
 ```
 
-Não são enviados utilizador, password, configurações do router, DNS, estado de
-Wi-Fi, modo bridge ou quaisquer outros dados pessoais para GitHub, cloud,
-servidores externos, APIs externas ou para o programador.
+## Não são enviados utilizador, password, configurações do router, DNS, estado de
+## Wi-Fi, modo bridge ou quaisquer outros dados pessoais para GitHub, cloud,
+## servidores externos, APIs externas ou para o programador.
 
 As credenciais são usadas apenas para autenticação na página local do router. Se
 o utilizador optar por guardar credenciais, estas ficam num ficheiro local
@@ -204,7 +181,6 @@ do menu, a ferramenta suporta alguns comandos diretos:
 MEO-Router-Tool.exe --command status
 MEO-Router-Tool.exe --command wifi-on
 MEO-Router-Tool.exe --command wifi-off
-MEO-Router-Tool.exe --command dns --primary-dns 1.1.1.1 --secondary-dns 212.55.154.190
 MEO-Router-Tool.exe --command bridge-status
 MEO-Router-Tool.exe --command bridge-on
 MEO-Router-Tool.exe --command bridge-off
