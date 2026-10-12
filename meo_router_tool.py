@@ -31,7 +31,7 @@ import requests
 
 
 APP_NAME = "Ferramenta Router MEO"
-WATERMARK = "Developed by diogorafael"
+WATERMARK = "Developed by diogorafael20"
 DEFAULT_ROUTER = "192.168.1.254"
 DEFAULT_PRIMARY_DNS = "1.1.1.1"
 DEFAULT_SECONDARY_DNS = "212.55.154.190"
