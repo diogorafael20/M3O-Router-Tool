@@ -4,7 +4,7 @@ setlocal
 
 cd /d "%~dp0"
 
-echo Developed by diogorafael20
+echo Developed by diogorafael20 
 
 where py >nul 2>nul
 if %ERRORLEVEL% EQU 0 (
