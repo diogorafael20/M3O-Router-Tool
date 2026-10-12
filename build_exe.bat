@@ -1,11 +1,11 @@
 @echo off
-REM Developed by diogorafael
+REM Developed by diogorafael20
 setlocal
 
 cd /d "%~dp0"
 
 echo.
-echo Developed by diogorafael
+echo Developed by diogorafael20
 echo A criar Ferramenta Router MEO para Windows...
 echo.
 
