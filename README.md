@@ -1,4 +1,4 @@
-# MEO Fiber Gateway Utility
+# M3O Fiber Gateway Utility
 
 Ferramenta de consola para gestão local de routers MEO Fiber Gateway.
 
