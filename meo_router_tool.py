@@ -5,7 +5,7 @@ Ferramenta interativa para routers MEO Fiber Gateway.
 A ferramenta faz login usando o fluxo da interface web do router e mostra um
 menu simples para estado, Wi-Fi, DNS e modo bridge.
 
-Marca de agua: Developed by diogorafael
+Marca de agua: Developed by diogorafael20
 """
 
 from __future__ import annotations
