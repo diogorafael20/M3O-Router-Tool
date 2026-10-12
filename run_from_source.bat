@@ -1,10 +1,10 @@
 @echo off
-REM Developed by diogorafael
+REM Developed by diogorafael20
 setlocal
 
 cd /d "%~dp0"
 
-echo Developed by diogorafael
+echo Developed by diogorafael20
 
 where py >nul 2>nul
 if %ERRORLEVEL% EQU 0 (
