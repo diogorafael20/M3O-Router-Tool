@@ -1,2 +1,2 @@
-# Developed by diogorafael
+# Developed by diogorafael20
 requests>=2.32.0
